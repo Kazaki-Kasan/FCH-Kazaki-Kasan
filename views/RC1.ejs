@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Retirement Calculator Suite</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/RC1.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<%- include('partials/navbar') %>
+<body>
+  <div class="container calculator-box mt-5">
+    <h3 class="text-center mb-4">Retirement Calculator Suite</h3>
+
+    <!-- Tool 1 -->
+    <div class="card mb-4">
+      <div class="card-header bg-light fw-bold">How long can your money last?</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">Savings (₹)</label>
+            <input type="number" class="form-control" id="survivalSavings">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Monthly Withdrawal (₹)</label>
+            <input type="number" class="form-control" id="withdrawalAmount">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Annual Interest Rate (%)</label>
+            <input type="number" class="form-control" id="survivalRate">
+          </div>
+        </div>
+        <div class="d-grid mt-3">
+          <button class="btn btn-outline-primary" onclick="calculateSurvivalYears()">Estimate Duration</button>
+        </div>
+        <div class="row mt-3 align-items-center">
+          <div class="col-md-6">
+            <div id="survivalResult" class="alert alert-info d-none small"></div>
+          </div>
+          <div class="col-md-6">
+            <canvas id="survivalChart" class="w-100" height="150"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tool 2 -->
+    <div class="card mb-4">
+      <div class="card-header bg-light fw-bold">How much can you withdraw after retirement?</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">Total Savings (₹)</label>
+            <input type="number" class="form-control" id="withdrawSavings">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Duration (Years)</label>
+            <input type="number" class="form-control" id="withdrawYears">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Annual Interest Rate (%)</label>
+            <input type="number" class="form-control" id="withdrawRate">
+          </div>
+        </div>
+        <div class="d-grid mt-3">
+          <button class="btn btn-outline-success" onclick="calculateMonthlyWithdrawal()">Estimate Withdrawal</button>
+        </div>
+        <div id="withdrawResult" class="alert alert-info mt-3 d-none small"></div>
+      </div>
+    </div>
+
+    <!-- Tool 3 -->
+    <div class="card mb-4">
+      <div class="card-header bg-light fw-bold">How can you save for retirement?</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">Current Savings (₹)</label>
+            <input type="number" class="form-control" id="currentSave">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Target Fund (₹)</label>
+            <input type="number" class="form-control" id="targetFund">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Years to Retirement</label>
+            <input type="number" class="form-control" id="saveYears">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Annual Interest Rate (%)</label>
+            <input type="number" class="form-control" id="saveRate">
+          </div>
+        </div>
+        <div class="d-grid mt-3">
+          <button class="btn btn-outline-warning" onclick="calculateMonthlySaving()">Estimate Saving</button>
+        </div>
+        <div class="row mt-3 align-items-center">
+          <div class="col-md-6">
+            <div id="savingResult" class="alert alert-info d-none small"></div>
+          </div>
+          <div class="col-md-6">
+            <canvas id="savingChart" class="w-100" height="150"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tool 4 -->
+    <div class="card">
+      <div class="card-header bg-light fw-bold">How much do you need to retire?</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">Desired Monthly Income (₹)</label>
+            <input type="number" class="form-control" id="retireIncome">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Duration (Years)</label>
+            <input type="number" class="form-control" id="retireYears">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Annual Return (%)</label>
+            <input type="number" class="form-control" id="retireRate">
+          </div>
+        </div>
+        <div class="d-grid mt-3">
+          <button class="btn btn-outline-dark" onclick="calculateRequiredCorpus()">Estimate Corpus</button>
+        </div>
+        <div id="corpusResult" class="alert alert-info mt-3 d-none small"></div>
+      </div>
+    </div>
+
+    <script src="/js/RC1.js"></script>
+  </div>
+</body>
+<script>
+  let survivalChart = null;
+let savingChart = null;
+
+function calculateSurvivalYears() {
+  const P = parseFloat(document.getElementById("survivalSavings").value);
+  const PMT = parseFloat(document.getElementById("withdrawalAmount").value);
+  const annualRate = parseFloat(document.getElementById("survivalRate").value);
+  const resultDiv = document.getElementById("survivalResult");
+
+  if (!P || !PMT || !annualRate || P <= 0 || PMT <= 0 || annualRate < 0) {
+    resultDiv.classList.remove("d-none");
+    resultDiv.classList.replace("alert-info", "alert-danger");
+    resultDiv.innerText = "Please enter valid inputs.";
+    return;
+  }
+
+  const r = annualRate / 100 / 12;
+  let n;
+
+  if (r === 0) {
+    n = P / PMT;
+  } else {
+    const x = 1 - (P * r) / PMT;
+    if (x <= 0) {
+      resultDiv.classList.remove("d-none");
+      resultDiv.classList.replace("alert-info", "alert-danger");
+      resultDiv.innerText = "Withdrawal rate too high — funds will never run out.";
+      return;
+    }
+    n = -Math.log(x) / Math.log(1 + r);
+  }
+
+  const years = Math.floor(n / 12);
+  const months = Math.round(n % 12);
+
+  resultDiv.classList.remove("d-none");
+  resultDiv.classList.replace("alert-danger", "alert-info");
+  resultDiv.innerHTML = `<strong>Estimated Duration:</strong><br><span class="text-primary h5">${years} years and ${months} months</span>`;
+
+  // Chart
+  const ctx = document.getElementById('survivalChart').getContext('2d');
+  if (survivalChart) survivalChart.destroy();
+  survivalChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Savings Used'],
+      datasets: [{
+        data: [P],
+        backgroundColor: ['#0d6efd']
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function calculateMonthlyWithdrawal() {
+  const P = parseFloat(document.getElementById("withdrawSavings").value);
+  const years = parseFloat(document.getElementById("withdrawYears").value);
+  const annualRate = parseFloat(document.getElementById("withdrawRate").value);
+  const resultDiv = document.getElementById("withdrawResult");
+
+  if (!P || !years || !annualRate || P <= 0 || years <= 0 || annualRate < 0) {
+    resultDiv.classList.remove("d-none");
+    resultDiv.classList.replace("alert-info", "alert-danger");
+    resultDiv.innerText = "Please enter valid inputs.";
+    return;
+  }
+
+  const r = annualRate / 100 / 12;
+  const n = years * 12;
+
+  const PMT = r === 0 ? P / n : P * r / (1 - Math.pow(1 + r, -n));
+
+  resultDiv.classList.remove("d-none");
+  resultDiv.classList.replace("alert-danger", "alert-info");
+  resultDiv.innerHTML = `<strong>Monthly Withdrawal:</strong><br><span class="text-success h5">₹${PMT.toFixed(2)}</span>`;
+}
+
+function calculateMonthlySaving() {
+  const current = parseFloat(document.getElementById("currentSave").value);
+  const goal = parseFloat(document.getElementById("targetFund").value);
+  const years = parseFloat(document.getElementById("saveYears").value);
+  const rate = parseFloat(document.getElementById("saveRate").value);
+  const resultDiv = document.getElementById("savingResult");
+
+  if (!current || !goal || !years || !rate || goal <= current || years <= 0) {
+    resultDiv.classList.remove("d-none");
+    resultDiv.classList.replace("alert-info", "alert-danger");
+    resultDiv.innerText = "Please enter valid inputs.";
+    return;
+  }
+
+  const r = rate / 100 / 12;
+  const n = years * 12;
+
+  const futureValueOfCurrent = current * Math.pow(1 + r, n);
+  const PMT = (goal - futureValueOfCurrent) * r / (Math.pow(1 + r, n) - 1);
+
+  const totalContribution = PMT * n;
+  const interestEarned = goal - totalContribution - current;
+
+  resultDiv.classList.remove("d-none");
+  resultDiv.classList.replace("alert-danger", "alert-info");
+  resultDiv.innerHTML = `<strong>Required Monthly Saving:</strong><br><span class="text-warning h5">₹${PMT.toFixed(2)}</span>`;
+
+  // Chart
+  const ctx = document.getElementById('savingChart').getContext('2d');
+  if (savingChart) savingChart.destroy();
+  savingChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Your Contributions', 'Interest Earned', 'Current Savings'],
+      datasets: [{
+        data: [totalContribution, interestEarned, current],
+        backgroundColor: ['#ffc107', '#198754', '#0d6efd']
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+}
+
+function calculateRequiredCorpus() {
+  const income = parseFloat(document.getElementById("retireIncome").value);
+  const years = parseFloat(document.getElementById("retireYears").value);
+  const rate = parseFloat(document.getElementById("retireRate").value);
+  const resultDiv = document.getElementById("corpusResult");
+
+  if (!income || !years || !rate || income <= 0 || years <= 0 || rate < 0) {
+    resultDiv.classList.remove("d-none");
+    resultDiv.classList.replace("alert-info", "alert-danger");
+    resultDiv.innerText = "Please enter valid inputs.";
+    return;
+  }
+
+  const r = rate / 100 / 12;
+  const n = years * 12;
+
+  const corpus = r === 0 ? income * n : income * (1 - Math.pow(1 + r, -n)) / r;
+
+  resultDiv.classList.remove("d-none");
+  resultDiv.classList.replace("alert-danger", "alert-info");
+  resultDiv.innerHTML = `<strong>Required Corpus:</strong><br><span class="text-dark h5">₹${corpus.toFixed(2)}</span>`;
+}
+
+</script>
+<%- include('partials/footer') %>
+</html>
